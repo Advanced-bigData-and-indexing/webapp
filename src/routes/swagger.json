@@ -1,0 +1,145 @@
+{
+	"openapi": "3.0.0",
+	"components": {
+		"examples": {},
+		"headers": {},
+		"parameters": {},
+		"requestBodies": {},
+		"responses": {},
+		"schemas": {},
+		"securitySchemes": {}
+	},
+	"info": {
+		"title": "webapp",
+		"version": "1.0.0",
+		"description": "repository for web applications",
+		"license": {
+			"name": "ISC"
+		},
+		"contact": {}
+	},
+	"paths": {
+		"/sample": {
+			"get": {
+				"operationId": "CheckConnection",
+				"responses": {
+					"200": {
+						"description": "server responds with 200 OK if it is healhty."
+					},
+					"503": {
+						"description": "server responds with 503 if it is not healhty."
+					}
+				},
+				"tags": [
+					"public"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/healthz": {
+			"get": {
+				"operationId": "CheckConnection",
+				"responses": {
+					"200": {
+						"description": "server responds with 200 OK if it is healhty."
+					},
+					"503": {
+						"description": "server responds with 503 if it is not healhty."
+					}
+				},
+				"tags": [
+					"public"
+				],
+				"security": [],
+				"parameters": []
+			},
+			"post": {
+				"operationId": "CheckConnectionPost",
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"405": {
+						"description": "server responds with 405 Method Not Allowed."
+					}
+				},
+				"tags": [
+					"public"
+				],
+				"security": [],
+				"parameters": []
+			},
+			"put": {
+				"operationId": "CheckConnectionPut",
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"405": {
+						"description": "server responds with 405 Method Not Allowed."
+					}
+				},
+				"tags": [
+					"public"
+				],
+				"security": [],
+				"parameters": []
+			},
+			"delete": {
+				"operationId": "CheckConnectionDelete",
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"405": {
+						"description": "server responds with 405 Method Not Allowed."
+					}
+				},
+				"tags": [
+					"public"
+				],
+				"security": [],
+				"parameters": []
+			},
+			"head": {
+				"operationId": "CheckConnectionHead",
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"405": {
+						"description": "server responds with 405 Method Not Allowed."
+					}
+				},
+				"tags": [
+					"public"
+				],
+				"security": [],
+				"parameters": []
+			},
+			"options": {
+				"operationId": "CheckConnectionOptions",
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"405": {
+						"description": "server responds with 405 Method Not Allowed."
+					}
+				},
+				"tags": [
+					"public"
+				],
+				"security": [],
+				"parameters": []
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "http://localhost:3000",
+			"description": "Development server"
+		}
+	]
+}
