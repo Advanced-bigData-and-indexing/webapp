@@ -10,11 +10,13 @@ import {
 export default class DataService {
   async getData(id: string, clientETag: string): Promise<{ eTag: string, currentData: any }> {
     // Retrieve the current ETag and data from the database/cache
-    const currentEtag = await client.get(`${id}:etag`);
+    let currentEtag = await client.get(`${id}:etag`);
 
     if(!currentEtag) {
       throw new ServiceUnavailableError();
     }
+
+    currentEtag = JSON.parse(currentEtag);
 
     // Compare the client's ETag with the current ETag
     if (clientETag === currentEtag) {
