@@ -30,7 +30,7 @@ Clone the project repository to your local machine via SSH. Use the command:
 
 ## Features
 
-
+- zod for schema
 
 
 ## Steps followed in completing this assignment
