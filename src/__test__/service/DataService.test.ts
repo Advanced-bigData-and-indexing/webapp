@@ -4,7 +4,7 @@ import { z } from "zod";
 import { generateMock } from "@anatine/zod-mock";
 import DataService from "../../service/DataService";
 
-import { DataSchema, DataSchemaIdField } from "../../schemas/Data.Schema";
+import { DataSchema, DataSchemaIdField } from "../../../schemas/Data.Schema";
 import { BadInputError } from "../../errorHandling/Errors";
 
 const idField = "id";
