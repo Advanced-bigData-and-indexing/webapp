@@ -6,7 +6,7 @@ import DataService from "../../service/DataService";
 
 import { DataSchema, DataSchemaIdField } from "../../../schemas/Data.Schema";
 import { BadInputError } from "../../errorHandling/Errors";
-
+const mockETag = "a8e483df6dbcaff58dc94279113206a4";
 const idField = "id";
 const mockSchema = z.object({
   uid: z.string(),
@@ -44,26 +44,37 @@ describe("Data Service", () => {
       const mockData = generateMock(mockSchema);
 
       // mock the client . set method
-      mockClientSet.mockResolvedValue("OK");
-      mockClientGet.mockResolvedValue(mockData);
+      mockClientSet.mockResolvedValueOnce("OK");
+      mockClientGet
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(JSON.stringify(mockData))
+        .mockResolvedValueOnce(mockETag);
 
-      const {output, etag} = await dataService.postData(mockData, mockSchema, idField);
+      const { output, etag } = await dataService.postData(
+        mockData,
+        mockSchema,
+        idField
+      );
       expect(output).toEqual(mockData);
     });
 
     it("Should return the ETag value along with the inserted json object if succesful", async () => {
-
-              // Set up
+      // Set up
       const mockData = generateMock(mockSchema);
 
       // mock the client . set method
       mockClientSet.mockResolvedValue("OK");
-      mockClientGet.mockResolvedValue(mockData);
+      mockClientGet
+        .mockResolvedValueOnce(null)
+        .mockResolvedValue(JSON.stringify(mockData));
 
-      const {output, etag} = await dataService.postData(mockData, mockSchema, idField);
+      const { output, etag } = await dataService.postData(
+        mockData,
+        mockSchema,
+        idField
+      );
       expect(etag).toBeDefined();
-
-    })
+    });
 
     it("Should throw a Bad input error if the input json is invalid", async () => {
       // Set up
@@ -73,6 +84,19 @@ describe("Data Service", () => {
       await expect(
         dataService.postData(mockData, DataSchema, DataSchemaIdField)
       ).rejects.toThrow(new BadInputError("Invalid json object passed"));
+    });
+
+    it("Should throw a Bad Input Error if key of same id is present", async () => {
+      // Set up
+      const mockData = generateMock(DataSchema);
+
+      // data is already present
+      mockClientGet.mockResolvedValueOnce(JSON.stringify(mockData));
+
+      // expect method to fail
+      await expect(
+        dataService.postData(mockData, DataSchema, DataSchemaIdField)
+      ).rejects.toThrow(new BadInputError("Data already present"));
     });
   });
 });

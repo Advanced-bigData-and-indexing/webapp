@@ -19,12 +19,6 @@ export default class DataService {
       throw new ServiceUnavailableError();
     }
 
-    currentEtag = JSON.parse(currentEtag);
-
-    if (!currentEtag) {
-      throw new ServiceUnavailableError();
-    }
-
     // Compare the client's ETag with the current ETag
     if (clientETag === currentEtag) {
       // Data has not changed, return 304 Not Modified
@@ -50,29 +44,38 @@ export default class DataService {
       throw new BadInputError("Invalid json object passed");
     }
 
+    const validatedData = validation.data;
+
+    // check if we already have this in the KV store
+    const eTagPresent = await client.get(`${validatedData[idField]}:etag`);
+
+    if(eTagPresent){
+      throw new BadInputError("Data already present");
+    }
+
     // Generate an ETag for the inputJson
     const etag = crypto
       .createHash("md5")
-      .update(JSON.stringify(inputJson))
+      .update(JSON.stringify(validatedData))
       .digest("hex");
 
     try {
       // update the data in redis under a key
-      await client.set(inputJson[idField], JSON.stringify(inputJson));
-      await client.set(`${inputJson[idField]}:etag`, JSON.stringify(etag)); // Store the ETag in a related key
+      await client.set(validatedData[idField], JSON.stringify(validatedData));
+      await client.set(`${validatedData[idField]}:etag`, etag); // Store the ETag in a related key
     } catch (err) {
       throw new ServiceUnavailableError("Error in redis server " + err);
     }
 
     // get the data that was set
-    const data = await client.get(inputJson[idField]);
-    const eTagSaved = await client.get(`${inputJson[idField]}:etag`);
+    const dataAfterSave = await client.get(validatedData[idField]);
+    const eTagSaved = await client.get(`${validatedData[idField]}:etag`);
 
-    if (!data || !eTagSaved) {
-      throw new ServiceUnavailableError("Error in redis server");
+    if (!dataAfterSave || !eTagSaved) {
+      throw new ServiceUnavailableError("Error in redis server " + !dataAfterSave + !eTagSaved);
     }
 
     // return updated data
-    return { output: JSON.parse(data), etag: JSON.parse(eTagSaved) };
+    return { output: JSON.parse(dataAfterSave), etag: eTagSaved };
   }
 }

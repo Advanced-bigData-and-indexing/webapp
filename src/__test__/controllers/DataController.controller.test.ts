@@ -5,6 +5,7 @@ import { DataController } from "../../controllers/Data.controller";
 import { DataSchema } from "../../../schemas/Data.Schema";
 import { client } from "../../config/redisClient.config";
 
+const mockETag = "a8e483df6dbcaff58dc94279113206a4";
 const idField = "id";
 const mockSchema = z.object({
   uid: z.string(),
@@ -50,8 +51,12 @@ describe("Data Controller", () => {
       // it should take in the input json data
       const mockData = generateMock(DataSchema);
 
+      mockClientGet.mockResolvedValueOnce(JSON.stringify(mockData));
+      mockClientGet.mockResolvedValueOnce(mockETag);
+
+
       // make the mock data service return output and Etag
-      mockDataServicePost.mockResolvedValue({ output: mockData, etag: "" });
+      mockDataServicePost.mockResolvedValue({ output: mockData, etag: mockETag });
 
       // it shuold call the service with the other required params
       await dataController.postData(mockData);
@@ -65,8 +70,11 @@ describe("Data Controller", () => {
       const mockData = generateMock(DataSchema);
       mockDataServicePost.mockResolvedValueOnce({
         output: mockData,
-        etag: "",
+        etag: mockETag,
       });
+
+      mockClientGet.mockResolvedValueOnce(JSON.stringify(mockData));
+      mockClientGet.mockResolvedValueOnce(mockETag);
 
       // it shuold call the service with the other required params
       await dataController.postData(mockData);

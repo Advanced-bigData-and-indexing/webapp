@@ -27,18 +27,17 @@ export class DataController extends Controller {
   @Response(304, "Data has not changed, return 304 Not Modified")
   async getData(
     @Path() id: string,
-    @Header("If-None-Match") clientEtag: string
+    @Header('If-None-Match') ifNoneMatch: string
   ) {
-    console.log(clientEtag);
 
-    if (typeof clientEtag !== "string") {
+    if (typeof ifNoneMatch !== "string") {
       this.setStatus(400);
       return;
     }
 
     const { eTag, currentData } = await this.dataService.getData(
       id,
-      clientEtag
+      ifNoneMatch
     );
 
     this.setHeader("ETag", eTag);

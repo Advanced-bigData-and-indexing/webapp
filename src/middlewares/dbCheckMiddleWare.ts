@@ -1,4 +1,3 @@
-import { HealthCheckController } from "../controllers/HealthCheck.controller.js";
 import { DBConnection } from "../entities/DBConnection.js";
 
 // setting up database check for the user end point

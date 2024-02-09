@@ -12,8 +12,10 @@ class Server {
 
   // bootstrap
   async bootstrap() {
+    console.log("Starting up server");
     checkDBConnectionRepeatedly();
     const app = express();
+    console.log("Regitering routes and middleware");
     configMiddleware(app);
     app.listen(EnvConfiguration.PORT, () => {
       console.log("TCP server established on port ", EnvConfiguration.PORT);
