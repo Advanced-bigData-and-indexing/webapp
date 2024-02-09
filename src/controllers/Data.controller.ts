@@ -17,13 +17,17 @@ export default class DataController extends Controller {
   async postData(@Body() inputJson: any) {
     // we need to get the schema and id field from the schema file and pass it in to the service
     // here we parameterize this based on env variables
-    const data = await this.dataService.postData(
+    const out = await this.dataService.postData(
       inputJson,
       DataSchema,
       DataSchemaIdField
     );
 
+    const { output, etag } = out;
+
+    // Set the ETag in the response header
+    this.setHeader("ETag", etag);
     this.setStatus(200);
-    return data;
+    return output;
   }
 }

@@ -1,9 +1,9 @@
 import { generateMock } from "@anatine/zod-mock";
 import { z } from "zod";
 import DataService from "../../service/DataService";
-import DataController from "../../controllers/Data.controller"
-
-jest.mock("../../service/DataService");
+import DataController from "../../controllers/Data.controller";
+import { DataSchema } from "../../../schemas/Data.Schema";
+import { client } from "../../config/redisClient.config";
 
 const idField = "id";
 const mockSchema = z.object({
@@ -21,29 +21,58 @@ const mockSchema = z.object({
   [idField]: z.string(),
 });
 
+jest.mock("redis", () => require("../RedisMocks"));
+
 describe("Data Controller", () => {
-  let mockDataService: jest.Mocked<DataService>;
-  let dataController : DataController;
+  let mockDataService: DataService;
+  let dataController: DataController;
+  let mockDataServicePost = jest.fn();
+
+  let mockClientSet = jest.fn();
+  let mockClientGet = jest.fn();
 
   describe("Post", () => {
     beforeEach(() => {
-        dataController = new DataController();
+      mockDataServicePost.mockReset();
+      dataController = new DataController();
       // Here we cast the instance to have jest.Mock types for its methods
-      mockDataService = new DataService() as jest.Mocked<DataService>;
-      mockDataService.postData.mockClear(); // Clear mocks if necessary
+      mockDataService = new DataService();
+      mockDataService.postData = mockDataServicePost;
+
+
+      mockClientSet.mockReset();
+      mockClientGet.mockReset();
+      client.set = mockClientSet;
+      client.get = mockClientGet;
     });
 
     it("Should return 200 when data is succesfully uploaded", async () => {
+      // it should take in the input json data
+      const mockData = generateMock(DataSchema);
 
-        // it should take in the input json data
-        const mockData = generateMock(mockSchema);
+      // make the mock data service return output and Etag
+      mockDataServicePost.mockResolvedValue({ output: mockData, etag: "" });
 
-        // it shuold call the service with the other required params
-        await dataController.postData(mockData);
+      // it shuold call the service with the other required params
+      await dataController.postData(mockData);
 
-        // it shuould return a 200
-        expect(dataController.getStatus()).toBe(200);
-         
+      // it shuould return a 200
+      expect(dataController.getStatus()).toBe(200);
+    });
+
+    it("Should contain the ETag in the response headers on success", async () => {
+      // it should take in the input json data
+      const mockData = generateMock(DataSchema);
+      mockDataServicePost.mockResolvedValueOnce({
+        output: mockData,
+        etag: "",
+      });
+
+      // it shuold call the service with the other required params
+      await dataController.postData(mockData);
+
+      // it shuould return a 200
+      expect(dataController.getHeader("ETag")).toBeDefined();
     });
   });
 });

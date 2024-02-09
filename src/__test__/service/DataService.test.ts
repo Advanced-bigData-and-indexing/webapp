@@ -47,9 +47,23 @@ describe("Data Service", () => {
       mockClientSet.mockResolvedValue("OK");
       mockClientGet.mockResolvedValue(mockData);
 
-      const output = await dataService.postData(mockData, mockSchema, idField);
+      const {output, etag} = await dataService.postData(mockData, mockSchema, idField);
       expect(output).toEqual(mockData);
     });
+
+    it("Should return the ETag value along with the inserted json object if succesful", async () => {
+
+              // Set up
+      const mockData = generateMock(mockSchema);
+
+      // mock the client . set method
+      mockClientSet.mockResolvedValue("OK");
+      mockClientGet.mockResolvedValue(mockData);
+
+      const {output, etag} = await dataService.postData(mockData, mockSchema, idField);
+      expect(etag).toBeDefined();
+
+    })
 
     it("Should throw a Bad input error if the input json is invalid", async () => {
       // Set up
