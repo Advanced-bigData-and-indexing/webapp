@@ -12,6 +12,7 @@
     "pre-build": "node preProcess.js",
     "compile": "npx tsc",
     "build": "npm run clean-up && npm run generate-tsoa && npm run test && npm run pre-build && npm run compile",
+    "build-skipTest": "npm run clean-up && npm run generate-tsoa && npm run pre-build && npm run compile",
     "serve": "node dist/src/index.js",
     "migrate" : "typeorm migration:create ./src/migrations/$migrationName",
     "demo": "npm run build && npm run serve"
