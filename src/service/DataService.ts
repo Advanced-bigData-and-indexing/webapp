@@ -1,11 +1,31 @@
 import crypto from "crypto";
 import { ZodSchema } from "zod";
 import { client } from "../config/redisClient.config.js";
-import { BadInputError, ServiceUnavailableError } from "../errorHandling/Errors.js";
+import {
+  BadInputError,
+  DataNotModified,
+  ServiceUnavailableError,
+} from "../errorHandling/Errors.js";
 
 export default class DataService {
-  async getData(): Promise<any> {
-    return "";
+  async getData(id: string, clientETag: string): Promise<{ eTag: string, currentData: any }> {
+    // Retrieve the current ETag and data from the database/cache
+    const currentEtag = await client.get(`${id}:etag`);
+
+    if(!currentEtag) {
+      throw new ServiceUnavailableError();
+    }
+
+    // Compare the client's ETag with the current ETag
+    if (clientETag === currentEtag) {
+      // Data has not changed, return 304 Not Modified
+      throw new DataNotModified();
+    } else {
+      const data = await client.get(`${id}`);
+
+      // Data has changed or no ETag provided, return 200 OK with data and current ETag
+      return { eTag: currentEtag, currentData: data };
+    }
   }
 
   async postData(
@@ -32,15 +52,15 @@ export default class DataService {
       await client.set(inputJson[idField], JSON.stringify(inputJson));
       await client.set(`${inputJson[idField]}:etag`, JSON.stringify(etag)); // Store the ETag in a related key
     } catch (err) {
-      throw new ServiceUnavailableError("Error in redis server " + err)
+      throw new ServiceUnavailableError("Error in redis server " + err);
     }
 
     // get the data that was set
     const data = await client.get(inputJson[idField]);
     const eTagSaved = await client.get(`${inputJson[idField]}:etag`);
 
-    if(!data || !eTagSaved) {
-      throw new ServiceUnavailableError("Error in redis server")
+    if (!data || !eTagSaved) {
+      throw new ServiceUnavailableError("Error in redis server");
     }
 
     // return updated data

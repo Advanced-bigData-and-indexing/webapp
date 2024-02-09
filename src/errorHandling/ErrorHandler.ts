@@ -5,6 +5,7 @@ import {
   AuthError,
   BadInputError,
   BadRequestError,
+  DataNotModified,
   NotFoundError,
 } from "./Errors.js";
 
@@ -12,6 +13,8 @@ import {
 export const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
   if (error instanceof ValidateError) {
     res.status(400).end();
+  } else if (error instanceof DataNotModified) {
+    res.status(HTTPStatusCode.DATA_NOT_MODIFIED).end();
   } else if (error instanceof NotFoundError) {
     res.status(HTTPStatusCode.OK).end();
   } else if (error instanceof BadInputError) {

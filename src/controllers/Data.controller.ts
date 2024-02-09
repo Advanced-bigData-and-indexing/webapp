@@ -1,5 +1,15 @@
 import { generateMock } from "@anatine/zod-mock";
-import { Body, Controller, Post, Route, SuccessResponse, Response, Get } from "tsoa";
+import {
+  Body,
+  Controller,
+  Post,
+  Route,
+  SuccessResponse,
+  Response,
+  Get,
+  Path,
+  Header,
+} from "tsoa";
 import { DataSchema, DataSchemaIdField } from "../../schemas/Data.Schema.js";
 import DataService from "../service/DataService.js";
 
@@ -12,19 +22,41 @@ export class DataController extends Controller {
     this.dataService = new DataService();
   }
 
+  @Get("data/:id")
+  @SuccessResponse("200", "Data is succesfully fetched")
+  @Response(304, "Data has not changed, return 304 Not Modified")
+  async getData(
+    @Path() id: string,
+    @Header("If-None-Match") clientEtag: string
+  ) {
+    console.log(clientEtag);
+
+    if (typeof clientEtag !== "string") {
+      this.setStatus(400);
+      return;
+    }
+
+    const { eTag, currentData } = await this.dataService.getData(
+      id,
+      clientEtag
+    );
+
+    this.setHeader("ETag", eTag);
+    this.setStatus(200);
+    return currentData;
+  }
+
   @Post("data")
   @SuccessResponse("200", "Data succesfully uploaded")
   @Response(400, "server responds with 400 if input json is invlalid.")
   async postData(@Body() inputJson: any) {
     // we need to get the schema and id field from the schema file and pass it in to the service
     // here we parameterize this based on env variables
-    const out = await this.dataService.postData(
+    const { output, etag } = await this.dataService.postData(
       inputJson,
       DataSchema,
       DataSchemaIdField
     );
-
-    const { output, etag } = out;
 
     // Set the ETag in the response header
     this.setHeader("ETag", etag);
