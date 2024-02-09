@@ -1,7 +1,7 @@
 import { generateMock } from "@anatine/zod-mock";
 import { z } from "zod";
 import DataService from "../../service/DataService";
-import DataController from "../../controllers/Data.controller";
+import { DataController } from "../../controllers/Data.controller";
 import { DataSchema } from "../../../schemas/Data.Schema";
 import { client } from "../../config/redisClient.config";
 

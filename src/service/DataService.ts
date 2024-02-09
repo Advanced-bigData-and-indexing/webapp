@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { ZodSchema } from "zod";
 import { client } from "../config/redisClient.config.js";
-import { BadInputError } from "../errorHandling/Errors.js";
+import { BadInputError, ServiceUnavailableError } from "../errorHandling/Errors.js";
 
 export default class DataService {
   async getData(): Promise<any> {
@@ -27,14 +27,23 @@ export default class DataService {
       .update(JSON.stringify(inputJson))
       .digest("hex");
 
-    // update the data in redis under a key
-    await client.set(inputJson[idField], inputJson);
-    await client.set(`${inputJson[idField]}:etag`, etag); // Store the ETag in a related key
+    try {
+      // update the data in redis under a key
+      await client.set(inputJson[idField], JSON.stringify(inputJson));
+      await client.set(`${inputJson[idField]}:etag`, JSON.stringify(etag)); // Store the ETag in a related key
+    } catch (err) {
+      throw new ServiceUnavailableError("Error in redis server " + err)
+    }
 
     // get the data that was set
     const data = await client.get(inputJson[idField]);
+    const eTagSaved = await client.get(`${inputJson[idField]}:etag`);
+
+    if(!data || !eTagSaved) {
+      throw new ServiceUnavailableError("Error in redis server")
+    }
 
     // return updated data
-    return { output: data, etag: etag };
+    return { output: JSON.parse(data), etag: JSON.parse(eTagSaved) };
   }
 }

@@ -1,9 +1,10 @@
-import { Body, Controller, Post, Route, SuccessResponse, Response } from "tsoa";
+import { generateMock } from "@anatine/zod-mock";
+import { Body, Controller, Post, Route, SuccessResponse, Response, Get } from "tsoa";
 import { DataSchema, DataSchemaIdField } from "../../schemas/Data.Schema.js";
 import DataService from "../service/DataService.js";
 
 @Route("/v1")
-export default class DataController extends Controller {
+export class DataController extends Controller {
   private dataService: DataService;
   constructor() {
     super();
@@ -29,5 +30,11 @@ export default class DataController extends Controller {
     this.setHeader("ETag", etag);
     this.setStatus(200);
     return output;
+  }
+
+  @Get("mockData")
+  @SuccessResponse("200", "Succesfully returned mock data")
+  async getMockData() {
+    return generateMock(DataSchema);
   }
 }
