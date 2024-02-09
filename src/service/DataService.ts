@@ -8,15 +8,22 @@ import {
 } from "../errorHandling/Errors.js";
 
 export default class DataService {
-  async getData(id: string, clientETag: string): Promise<{ eTag: string, currentData: any }> {
+  async getData(
+    id: string,
+    clientETag: string
+  ): Promise<{ eTag: string; currentData: any }> {
     // Retrieve the current ETag and data from the database/cache
     let currentEtag = await client.get(`${id}:etag`);
 
-    if(!currentEtag) {
+    if (!currentEtag) {
       throw new ServiceUnavailableError();
     }
 
     currentEtag = JSON.parse(currentEtag);
+
+    if (!currentEtag) {
+      throw new ServiceUnavailableError();
+    }
 
     // Compare the client's ETag with the current ETag
     if (clientETag === currentEtag) {
