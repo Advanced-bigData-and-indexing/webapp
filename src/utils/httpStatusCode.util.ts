@@ -2,6 +2,7 @@ export class HTTPStatusCode {
     static OK = 200;
     static CREATED = 201;
     static NO_CONTENT = 204;
+    static DATA_NOT_MODIFIED = 304;
     static BAD_REQUEST = 400;
     static UNAUTHORIZED = 401;
     static FORBIDDEN = 403;

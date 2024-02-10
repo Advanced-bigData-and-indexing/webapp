@@ -50,3 +50,10 @@ export class AuthError extends Error {
     super(message);
   }
 }
+
+export class DataNotModified extends Error {
+  constructor(message?: string | undefined) {
+    super(message);
+  }
+
+}

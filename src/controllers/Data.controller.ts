@@ -1,19 +1,18 @@
+import { generateMock } from "@anatine/zod-mock";
 import {
   Body,
   Controller,
-  Patch,
   Post,
   Route,
-  Request,
-  Get,
   SuccessResponse,
-  Put,
-  Tags,
+  Response,
+  Get,
+  Path,
+  Header,
 } from "tsoa";
-import express from "express";
-import ModelMapper from "./ModelMapper.js";
+import { DataSchema, DataSchemaIdField } from "../../schemas/Data.Schema.js";
 import DataService from "../service/DataService.js";
-import { DataSchema } from "../schemas/Data.Schema.js";
+import { fetchValuesByPattern } from "../utils/redis.util.js";
 
 @Route("/v1")
 export class DataController extends Controller {
@@ -24,14 +23,57 @@ export class DataController extends Controller {
     this.dataService = new DataService();
   }
 
-  @Get("data")
+  @Get("data/:id")
+  @SuccessResponse("200", "Data is succesfully fetched")
+  @Response(304, "Data has not changed, return 304 Not Modified")
   async getData(
-    @Body() inputJson: JSON
+    @Path() id: string,
+    @Header('If-None-Match') ifNoneMatch: string
   ) {
 
-    
+    if (typeof ifNoneMatch !== "string") {
+      this.setStatus(400);
+      return;
+    }
+
+    const { eTag, currentData } = await this.dataService.getData(
+      id,
+      ifNoneMatch
+    );
+
+    this.setHeader("ETag", eTag);
     this.setStatus(200);
-    return;
+    return currentData;
   }
 
+  @Get("data")
+  @SuccessResponse("200", "Data is succesfully fetched")
+  async getAllData() {
+    const data = await fetchValuesByPattern();
+    return data;
+  }
+
+  @Post("data")
+  @SuccessResponse("200", "Data succesfully uploaded")
+  @Response(400, "server responds with 400 if input json is invlalid.")
+  async postData(@Body() inputJson: any) {
+    // we need to get the schema and id field from the schema file and pass it in to the service
+    // here we parameterize this based on env variables
+    const { output, etag } = await this.dataService.postData(
+      inputJson,
+      DataSchema,
+      DataSchemaIdField
+    );
+
+    // Set the ETag in the response header
+    this.setHeader("ETag", etag);
+    this.setStatus(200);
+    return output;
+  }
+
+  @Get("mockData")
+  @SuccessResponse("200", "Succesfully returned mock data")
+  async getMockData() {
+    return generateMock(DataSchema);
+  }
 }

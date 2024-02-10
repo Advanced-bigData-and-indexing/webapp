@@ -16,6 +16,8 @@ class EnvConfiguration {
 
   // LOG
   static LOG_LEVEL = process.env.LOG_LEVEL;
+
+  static DATA_TYPE = process.env.DATA_TYPE;
 }
 
 export enum Environment {

@@ -3,9 +3,9 @@
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { Controller, ValidationService, FieldErrors, ValidateError, TsoaRoute, HttpStatusCodeLiteral, TsoaResponse, fetchMiddlewares } from '@tsoa/runtime';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-import { SampleController } from './../controllers/Sample.controller';
+import { SampleController } from './../controllers/Sample.controller.js';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-import { HealthCheckController } from './../controllers/HealthCheck.controller';
+import { DataController } from './../controllers/Data.controller.js';
 import type { RequestHandler, Router } from 'express';
 
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -45,12 +45,14 @@ export function RegisterRoutes(app: Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        app.get('/healthz',
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController)),
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController.prototype.checkConnection)),
+        app.get('/v1/data/:id',
+            ...(fetchMiddlewares<RequestHandler>(DataController)),
+            ...(fetchMiddlewares<RequestHandler>(DataController.prototype.getData)),
 
-            function HealthCheckController_checkConnection(request: any, response: any, next: any) {
+            function DataController_getData(request: any, response: any, next: any) {
             const args = {
+                    id: {"in":"path","name":"id","required":true,"dataType":"string"},
+                    ifNoneMatch: {"in":"header","name":"If-None-Match","required":true,"dataType":"string"},
             };
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -59,22 +61,23 @@ export function RegisterRoutes(app: Router) {
             try {
                 validatedArgs = getValidatedArgs(args, request, response);
 
-                const controller = new HealthCheckController();
+                const controller = new DataController();
 
 
-              const promise = controller.checkConnection.apply(controller, validatedArgs as any);
+              const promise = controller.getData.apply(controller, validatedArgs as any);
               promiseHandler(controller, promise, response, 200, next);
             } catch (err) {
                 return next(err);
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        app.post('/healthz',
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController)),
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController.prototype.checkConnectionPost)),
+        app.post('/v1/data',
+            ...(fetchMiddlewares<RequestHandler>(DataController)),
+            ...(fetchMiddlewares<RequestHandler>(DataController.prototype.postData)),
 
-            function HealthCheckController_checkConnectionPost(request: any, response: any, next: any) {
+            function DataController_postData(request: any, response: any, next: any) {
             const args = {
+                    inputJson: {"in":"body","name":"inputJson","required":true,"dataType":"any"},
             };
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -83,21 +86,21 @@ export function RegisterRoutes(app: Router) {
             try {
                 validatedArgs = getValidatedArgs(args, request, response);
 
-                const controller = new HealthCheckController();
+                const controller = new DataController();
 
 
-              const promise = controller.checkConnectionPost.apply(controller, validatedArgs as any);
-              promiseHandler(controller, promise, response, undefined, next);
+              const promise = controller.postData.apply(controller, validatedArgs as any);
+              promiseHandler(controller, promise, response, 200, next);
             } catch (err) {
                 return next(err);
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        app.put('/healthz',
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController)),
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController.prototype.checkConnectionPut)),
+        app.get('/v1/mockData',
+            ...(fetchMiddlewares<RequestHandler>(DataController)),
+            ...(fetchMiddlewares<RequestHandler>(DataController.prototype.getMockData)),
 
-            function HealthCheckController_checkConnectionPut(request: any, response: any, next: any) {
+            function DataController_getMockData(request: any, response: any, next: any) {
             const args = {
             };
 
@@ -107,83 +110,11 @@ export function RegisterRoutes(app: Router) {
             try {
                 validatedArgs = getValidatedArgs(args, request, response);
 
-                const controller = new HealthCheckController();
+                const controller = new DataController();
 
 
-              const promise = controller.checkConnectionPut.apply(controller, validatedArgs as any);
-              promiseHandler(controller, promise, response, undefined, next);
-            } catch (err) {
-                return next(err);
-            }
-        });
-        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        app.delete('/healthz',
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController)),
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController.prototype.checkConnectionDelete)),
-
-            function HealthCheckController_checkConnectionDelete(request: any, response: any, next: any) {
-            const args = {
-            };
-
-            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-            let validatedArgs: any[] = [];
-            try {
-                validatedArgs = getValidatedArgs(args, request, response);
-
-                const controller = new HealthCheckController();
-
-
-              const promise = controller.checkConnectionDelete.apply(controller, validatedArgs as any);
-              promiseHandler(controller, promise, response, undefined, next);
-            } catch (err) {
-                return next(err);
-            }
-        });
-        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        app.head('/healthz',
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController)),
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController.prototype.checkConnectionHead)),
-
-            function HealthCheckController_checkConnectionHead(request: any, response: any, next: any) {
-            const args = {
-            };
-
-            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-            let validatedArgs: any[] = [];
-            try {
-                validatedArgs = getValidatedArgs(args, request, response);
-
-                const controller = new HealthCheckController();
-
-
-              const promise = controller.checkConnectionHead.apply(controller, validatedArgs as any);
-              promiseHandler(controller, promise, response, undefined, next);
-            } catch (err) {
-                return next(err);
-            }
-        });
-        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        app.options('/healthz',
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController)),
-            ...(fetchMiddlewares<RequestHandler>(HealthCheckController.prototype.checkConnectionOptions)),
-
-            function HealthCheckController_checkConnectionOptions(request: any, response: any, next: any) {
-            const args = {
-            };
-
-            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-            let validatedArgs: any[] = [];
-            try {
-                validatedArgs = getValidatedArgs(args, request, response);
-
-                const controller = new HealthCheckController();
-
-
-              const promise = controller.checkConnectionOptions.apply(controller, validatedArgs as any);
-              promiseHandler(controller, promise, response, undefined, next);
+              const promise = controller.getMockData.apply(controller, validatedArgs as any);
+              promiseHandler(controller, promise, response, 200, next);
             } catch (err) {
                 return next(err);
             }
