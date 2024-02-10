@@ -3,6 +3,7 @@ import { ZodSchema } from "zod";
 import { client } from "../config/redisClient.config.js";
 import {
   BadInputError,
+  BadRequestError,
   DataNotModified,
   ServiceUnavailableError,
 } from "../errorHandling/Errors.js";
@@ -16,16 +17,20 @@ export default class DataService {
     let currentEtag = await client.get(`${id}:etag`);
 
     if (!currentEtag) {
-      throw new ServiceUnavailableError();
+      throw new BadRequestError();
+    }
+
+    const data = await client.get(`${id}`);
+
+    if (data == null) {
+      throw new BadRequestError();
     }
 
     // Compare the client's ETag with the current ETag
     if (clientETag === currentEtag) {
       // Data has not changed, return 304 Not Modified
-      throw new DataNotModified();
+      throw new DataNotModified("Data not modified");
     } else {
-      const data = await client.get(`${id}`);
-
       // Data has changed or no ETag provided, return 200 OK with data and current ETag
       return { eTag: currentEtag, currentData: data };
     }
@@ -49,7 +54,7 @@ export default class DataService {
     // check if we already have this in the KV store
     const eTagPresent = await client.get(`${validatedData[idField]}:etag`);
 
-    if(eTagPresent){
+    if (eTagPresent) {
       throw new BadInputError("Data already present");
     }
 
@@ -72,10 +77,39 @@ export default class DataService {
     const eTagSaved = await client.get(`${validatedData[idField]}:etag`);
 
     if (!dataAfterSave || !eTagSaved) {
-      throw new ServiceUnavailableError("Error in redis server " + !dataAfterSave + !eTagSaved);
+      throw new ServiceUnavailableError(
+        "Error in redis server " + !dataAfterSave + !eTagSaved
+      );
     }
 
     // return updated data
     return { output: JSON.parse(dataAfterSave), etag: eTagSaved };
+  }
+
+  async deleteData(idToDelete: string, ETagToDelete: string) {
+    const existingETag = await client.get(`${idToDelete}:etag`);
+
+    if (existingETag == null) {
+      throw new BadInputError("Data not present in DB");
+    }
+
+    if (existingETag !== ETagToDelete) {
+      throw new DataNotModified();
+    }
+
+    const dataInDB = await client.get(idToDelete);
+
+    if (!dataInDB) {
+      throw new BadInputError("Data not present in DB");
+    }
+
+    const deleteOp1 = await client.del(idToDelete);
+    const deleteOp2 = await client.del(`${idToDelete}:etag`);
+
+    if (deleteOp1 !== 1 || deleteOp2 !== 1) {
+      throw new ServiceUnavailableError();
+    }
+
+    return idToDelete;
   }
 }
