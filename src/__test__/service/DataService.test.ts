@@ -110,6 +110,7 @@ describe("Data Service", () => {
 
     beforeEach(() => {
       dataService = new DataService();
+      mockClientGet.mockReset();
       client.get = mockClientGet;
     });
 
@@ -142,7 +143,7 @@ describe("Data Service", () => {
       expect(out.eTag).toEqual(existingETag);
     });
 
-    it("Should throw a Data Not Modified Error if the ETag is the same", async () => {
+    it("Should throw a 302 Data Not Modified Error if the ETag is the same", async () => {
       // set up
       let dataToGetId = "xyz";
       let clientETag = mockETag;
@@ -150,7 +151,9 @@ describe("Data Service", () => {
 
       // first the etag in the DB is checked
       // in this case the etag in the db is the same
-      mockClientGet.mockResolvedValue(savedETag);
+      mockClientGet.mockResolvedValueOnce(savedETag);
+
+      mockClientGet.mockResolvedValueOnce(JSON.stringify({}));
 
       // This causes the method to throw a Data Not Modified Error
       await expect(
@@ -172,7 +175,7 @@ describe("Data Service", () => {
 
       mockClientGet.mockReset();
       mockClientGet
-      .mockResolvedValueOnce(mockETag)
+      .mockResolvedValueOnce("randomETag")
       .mockResolvedValue(null); // when data does not exist
 
       await expect(
@@ -237,7 +240,7 @@ describe("Data Service", () => {
       ).rejects.toThrow(new BadInputError("Data not present in DB"));
     });
 
-    it("Should throw a 302 when data has chaned in the database", async () => {
+    it("Should throw a 400 when data has changed in the database", async () => {
       // we give it an id and an eTag
       const idToDelete = "xyz";
       const ETagToDelete = mockETag;
@@ -248,7 +251,7 @@ describe("Data Service", () => {
 
       await expect(
         dataService.deleteData(idToDelete, ETagToDelete)
-      ).rejects.toThrow(new DataNotModified());
+      ).rejects.toThrow(new BadInputError());
     });
 
     it("Throws a 503 when there is an issue with deleteing the entries from the DB", async () => {

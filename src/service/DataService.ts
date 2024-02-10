@@ -7,6 +7,7 @@ import {
   DataNotModified,
   ServiceUnavailableError,
 } from "../errorHandling/Errors.js";
+import { createId } from "../utils/redis.util.js";
 
 export default class DataService {
   async getData(
@@ -14,15 +15,9 @@ export default class DataService {
     clientETag: string
   ): Promise<{ eTag: string; currentData: any }> {
     // Retrieve the current ETag and data from the database/cache
-    let currentEtag = await client.get(`${id}:etag`);
+    let currentEtag = await client.get(`${createId(id)}:etag`);
 
     if (!currentEtag) {
-      throw new BadRequestError();
-    }
-
-    const data = await client.get(`${id}`);
-
-    if (data == null) {
       throw new BadRequestError();
     }
 
@@ -30,10 +25,16 @@ export default class DataService {
     if (clientETag === currentEtag) {
       // Data has not changed, return 304 Not Modified
       throw new DataNotModified("Data not modified");
-    } else {
-      // Data has changed or no ETag provided, return 200 OK with data and current ETag
-      return { eTag: currentEtag, currentData: data };
     }
+
+    const data = await client.get(`${createId(id)}`);
+
+    if (data == null) {
+      throw new BadRequestError();
+    }
+
+    // Data has changed or no ETag provided, return 200 OK with data and current ETag
+    return { eTag: currentEtag, currentData: data };
   }
 
   async postData(
@@ -46,15 +47,19 @@ export default class DataService {
     const validation = schemaToTest.safeParse(inputJson);
 
     if (!validation.success) {
+      // console.log("data validation failed ", validation.error);
       throw new BadInputError("Invalid json object passed");
     }
 
     const validatedData = validation.data;
 
     // check if we already have this in the KV store
-    const eTagPresent = await client.get(`${validatedData[idField]}:etag`);
+    const eTagPresent = await client.get(
+      `${createId(validatedData[idField])}:etag`
+    );
 
     if (eTagPresent) {
+      console.log("ETag Present ", eTagPresent);
       throw new BadInputError("Data already present");
     }
 
@@ -66,15 +71,20 @@ export default class DataService {
 
     try {
       // update the data in redis under a key
-      await client.set(validatedData[idField], JSON.stringify(validatedData));
-      await client.set(`${validatedData[idField]}:etag`, etag); // Store the ETag in a related key
+      await client.set(
+        createId(validatedData[idField]),
+        JSON.stringify(validatedData)
+      );
+      await client.set(`${createId(validatedData[idField])}:etag`, etag); // Store the ETag in a related key
     } catch (err) {
       throw new ServiceUnavailableError("Error in redis server " + err);
     }
 
     // get the data that was set
-    const dataAfterSave = await client.get(validatedData[idField]);
-    const eTagSaved = await client.get(`${validatedData[idField]}:etag`);
+    const dataAfterSave = await client.get(createId(validatedData[idField]));
+    const eTagSaved = await client.get(
+      `${createId(validatedData[idField])}:etag`
+    );
 
     if (!dataAfterSave || !eTagSaved) {
       throw new ServiceUnavailableError(
@@ -87,24 +97,26 @@ export default class DataService {
   }
 
   async deleteData(idToDelete: string, ETagToDelete: string) {
-    const existingETag = await client.get(`${idToDelete}:etag`);
+    const existingETag = await client.get(`${createId(idToDelete)}:etag`);
 
     if (existingETag == null) {
       throw new BadInputError("Data not present in DB");
     }
 
+    // ETag has been modified - cannot delete something that has changed in the DB
+    // Throw 400 bad request
     if (existingETag !== ETagToDelete) {
-      throw new DataNotModified();
+      throw new BadRequestError();
     }
 
-    const dataInDB = await client.get(idToDelete);
+    const dataInDB = await client.get(createId(idToDelete));
 
     if (!dataInDB) {
       throw new BadInputError("Data not present in DB");
     }
 
-    const deleteOp1 = await client.del(idToDelete);
-    const deleteOp2 = await client.del(`${idToDelete}:etag`);
+    const deleteOp1 = await client.del(createId(idToDelete));
+    const deleteOp2 = await client.del(`${createId(idToDelete)}:etag`);
 
     if (deleteOp1 !== 1 || deleteOp2 !== 1) {
       throw new ServiceUnavailableError();
