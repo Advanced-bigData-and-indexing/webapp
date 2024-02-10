@@ -12,6 +12,7 @@ import {
 } from "tsoa";
 import { DataSchema, DataSchemaIdField } from "../../schemas/Data.Schema.js";
 import DataService from "../service/DataService.js";
+import { fetchValuesByPattern } from "../utils/redis.util.js";
 
 @Route("/v1")
 export class DataController extends Controller {
@@ -43,6 +44,13 @@ export class DataController extends Controller {
     this.setHeader("ETag", eTag);
     this.setStatus(200);
     return currentData;
+  }
+
+  @Get("data")
+  @SuccessResponse("200", "Data is succesfully fetched")
+  async getAllData() {
+    const data = await fetchValuesByPattern();
+    return data;
   }
 
   @Post("data")
