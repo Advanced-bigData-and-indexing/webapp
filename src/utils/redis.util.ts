@@ -1,5 +1,7 @@
 import { EnvConfiguration } from "../config/env.config.js";
 import { client } from "../config/redisClient.config.js";
+import { ServiceUnavailableError } from "../errorHandling/Errors.js";
+import { generateEtag } from "./eTag.util.js";
 
 /**
  * In this function to represent that we are storing a plan object in the KV store
@@ -29,8 +31,8 @@ export async function fetchValuesByPattern(): Promise<
   {
     key: string;
     value: {
-      string: string,
-      eTag: string
+      string: string;
+      eTag: string;
     };
   }[]
 > {
@@ -55,14 +57,70 @@ export async function fetchValuesByPattern(): Promise<
       if (value !== null) {
         // Ensure that a value was actually returned
         // also fetch the eTag of the key
-        const eTag = await client.get(`${key}:etag`)
-        fetchedValues.push({ key, value: {
-          string: value,
-          eTag: eTag || ""
-        } });
+        const eTag = await client.get(`${key}:etag`);
+        fetchedValues.push({
+          key,
+          value: {
+            string: value,
+            eTag: eTag || "",
+          },
+        });
       }
     }
   } while (cursor !== 0); // Continue until the scan returns a cursor of 0
 
   return fetchedValues;
+}
+
+/**
+ * Methods used to interact with the redis client,
+ * we will have a design an interface that can be swapped across clients
+ *
+ * For now we use this to perform all redis client operations for the current use case
+ */
+
+/**
+ * Let's think about the naming of these methods, do we want to use a class based approach
+ * or a functional approach ?
+ *
+ * We do not have any state, so let's stick to functional approach, but we would like to group
+ * these methods together, so let;s create a redis store class
+ */
+
+export class DataStore {
+  constructor() {
+    // public constructor, to get new instance of DataStore
+  }
+
+  async getById(id: string): Promise<{ data: any; eTag: string | null }> {
+    const data = await client.get(`${createId(id)}`);
+    const eTag = await client.get(`${createId(id)}:etag`);
+
+    return {
+      data,
+      eTag,
+    };
+  }
+
+  async set(data: any, id: string): Promise<string> {
+    try {
+      // update the data in redis under a key
+      await client.set(createId(id), JSON.stringify(data));
+      const etag = generateEtag(data);
+
+      await client.set(`${createId(id)}:etag`, etag); // Store the ETag in a related key
+      return etag;
+    } catch (err) {
+      throw new ServiceUnavailableError("Error in redis server " + err);
+    }
+  }
+
+  async deleteById(id: string): Promise<void> {
+    const deleteOp1 = await client.del(createId(id));
+    const deleteOp2 = await client.del(`${createId(id)}:etag`);
+
+    if (deleteOp1 !== 1 || deleteOp2 !== 1) {
+      throw new ServiceUnavailableError();
+    }
+  }
 }
