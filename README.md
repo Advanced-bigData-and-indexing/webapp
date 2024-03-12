@@ -5,7 +5,7 @@ NUID: 002919280
 
 ## Overview
 
-....
+[![Unit Test and Build](https://github.com/Advanced-bigData-and-indexing/webapp/actions/workflows/test-and-build.yml/badge.svg)](https://github.com/Advanced-bigData-and-indexing/webapp/actions/workflows/test-and-build.yml)
 
 ## Getting Started
 
