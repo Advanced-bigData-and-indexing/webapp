@@ -1,4 +1,3 @@
-import { generateMock } from "@anatine/zod-mock";
 import {
   Body,
   Controller,
@@ -9,12 +8,15 @@ import {
   Get,
   Path,
   Header,
+  Tags,
+  Delete,
 } from "tsoa";
 import { DataSchema, DataSchemaIdField } from "../../schemas/Data.Schema.js";
 import DataService from "../service/DataService.js";
 import { fetchValuesByPattern } from "../utils/redis.util.js";
 
-@Route("/v1")
+@Route("/v1/data")
+@Tags("Demo")
 export class DataController extends Controller {
   private dataService: DataService;
   constructor() {
@@ -23,7 +25,7 @@ export class DataController extends Controller {
     this.dataService = new DataService();
   }
 
-  @Get("data/:id")
+  @Get("/:id")
   @SuccessResponse("200", "Data is succesfully fetched")
   @Response(304, "Data has not changed, return 304 Not Modified")
   async getData(
@@ -43,20 +45,21 @@ export class DataController extends Controller {
 
     this.setHeader("ETag", eTag);
     this.setStatus(200);
+    
     return currentData;
   }
 
-  @Get("data")
+  @Get("")
   @SuccessResponse("200", "Data is succesfully fetched")
   async getAllData() {
     const data = await fetchValuesByPattern();
     return data;
   }
 
-  @Post("data")
-  @SuccessResponse("200", "Data succesfully uploaded")
-  @Response(400, "server responds with 400 if input json is invlalid.")
-  async postData(@Body() inputJson: any) {
+  @Post("")
+  @SuccessResponse("201", "Data succesfully uploaded")
+  @Response("400", "server responds with 400 if input json is invlalid.")
+  async postData(@Body() inputJson: any) : Promise<void> {
     // we need to get the schema and id field from the schema file and pass it in to the service
     // here we parameterize this based on env variables
     const { output, etag } = await this.dataService.postData(
@@ -67,8 +70,8 @@ export class DataController extends Controller {
 
     // Set the ETag in the response header
     this.setHeader("ETag", etag);
-    this.setStatus(200);
-    return output;
+    this.setStatus(201);
+    return;
   }
 
   @Delete("/:id")
