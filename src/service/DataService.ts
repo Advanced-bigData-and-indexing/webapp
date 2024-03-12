@@ -27,7 +27,7 @@ export default class DataService {
       throw new DataNotModified("Data not modified");
     }
 
-    const data = await client.get(`${createId(id)}`);
+    await client.get(`${createId(id)}`);
 
     if (data == null) {
       throw new BadRequestError();
