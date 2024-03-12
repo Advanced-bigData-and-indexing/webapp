@@ -28,7 +28,10 @@ export const createId = (incomingId: string) => {
 export async function fetchValuesByPattern(): Promise<
   {
     key: string;
-    value: string;
+    value: {
+      string: string,
+      eTag: string
+    };
   }[]
 > {
   const pattern = `*-${EnvConfiguration.DATA_TYPE}`;
@@ -51,7 +54,12 @@ export async function fetchValuesByPattern(): Promise<
       const value = await client.get(key);
       if (value !== null) {
         // Ensure that a value was actually returned
-        fetchedValues.push({ key, value });
+        // also fetch the eTag of the key
+        const eTag = await client.get(`${key}:etag`)
+        fetchedValues.push({ key, value: {
+          string: value,
+          eTag: eTag || ""
+        } });
       }
     }
   } while (cursor !== 0); // Continue until the scan returns a cursor of 0
