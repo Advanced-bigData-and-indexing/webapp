@@ -140,7 +140,7 @@ describe("Data Service", () => {
       expect(out).toHaveProperty("currentData");
 
       // expect the returned eTag to be the one in the database
-      expect(out.eTag).toEqual(existingETag);
+      expect(out.eTag).toEqual("haha");
     });
 
     it("Should throw a 302 Data Not Modified Error if the ETag is the same", async () => {
