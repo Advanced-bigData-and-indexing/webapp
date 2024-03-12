@@ -71,9 +71,14 @@ export class DataController extends Controller {
     return output;
   }
 
-  @Get("mockData")
-  @SuccessResponse("200", "Succesfully returned mock data")
-  async getMockData() {
-    return generateMock(DataSchema);
+  @Delete("/:id")
+  @SuccessResponse("204", "Data was succesfully deleted")
+  @Response("428", "Precondition Required - the data has been modified since last update" )
+  @Response("400", "Data is not present in the DB")
+  async deleteData(
+    @Path() id: string,
+    @Header('If-None-Match') ifNoneMatch: string
+  ) {
+    return await this.dataService.deleteData(id, ifNoneMatch);
   }
 }
