@@ -39,6 +39,12 @@ export class BadRequestError extends Error {
   }
 }
 
+export class PreConditionRequiredError extends Error {
+  constructor(message?: string | undefined) {
+    super(message);
+  }
+}
+
 export class ServiceUnavailableError extends Error {
   constructor(message?: string | undefined) {
     super(message);
