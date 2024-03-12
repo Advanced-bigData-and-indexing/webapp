@@ -1,6 +1,6 @@
 import { Controller, Get, Response, Route, SuccessResponse, Tags } from "tsoa";
 @Route("/")
-@Tags("public")
+@Tags("Public")
 export class SampleController extends Controller {
   constructor() {
     super();
