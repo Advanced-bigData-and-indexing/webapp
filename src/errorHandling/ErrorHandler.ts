@@ -7,12 +7,15 @@ import {
   BadRequestError,
   DataNotModified,
   NotFoundError,
+  PreConditionRequiredError,
 } from "./Errors.js";
 
 // noinspection JSUnusedLocalSymbols
 export const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
   if (error instanceof ValidateError) {
-    res.status(400).end();
+    res.status(HTTPStatusCode.BAD_REQUEST).end();
+  } else if (error instanceof PreConditionRequiredError){
+    res.status(HTTPStatusCode.PRECONDITION_REQUIRED).end();
   } else if (error instanceof DataNotModified) {
     res.status(HTTPStatusCode.DATA_NOT_MODIFIED).end();
   } else if (error instanceof NotFoundError) {

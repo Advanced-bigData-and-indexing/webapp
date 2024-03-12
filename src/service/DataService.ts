@@ -34,7 +34,7 @@ export default class DataService {
     }
 
     // Data has changed or no ETag provided, return 200 OK with data and current ETag
-    return { eTag: currentEtag, currentData: data };
+    return { eTag: currentEtag, currentData: JSON.parse(data) };
   }
 
   async postData(
