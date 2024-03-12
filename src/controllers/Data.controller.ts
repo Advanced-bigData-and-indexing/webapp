@@ -10,6 +10,7 @@ import {
   Header,
   Tags,
   Delete,
+  Patch,
 } from "tsoa";
 import { DataSchema, DataSchemaIdField } from "../../schemas/Data.Schema.js";
 import DataService from "../service/DataService.js";
@@ -53,6 +54,7 @@ export class DataController extends Controller {
   @SuccessResponse("200", "Data is succesfully fetched")
   async getAllData() {
     const data = await fetchValuesByPattern();
+    this.setStatus(200);
     return data;
   }
 
@@ -62,14 +64,14 @@ export class DataController extends Controller {
   async postData(@Body() inputJson: any) : Promise<void> {
     // we need to get the schema and id field from the schema file and pass it in to the service
     // here we parameterize this based on env variables
-    const { output, etag } = await this.dataService.postData(
+    const eTag = await this.dataService.postData(
       inputJson,
       DataSchema,
       DataSchemaIdField
     );
 
     // Set the ETag in the response header
-    this.setHeader("ETag", etag);
+    this.setHeader("ETag", eTag);
     this.setStatus(201);
     return;
   }
@@ -82,6 +84,22 @@ export class DataController extends Controller {
     @Path() id: string,
     @Header('If-None-Match') ifNoneMatch: string
   ) {
-    return await this.dataService.deleteData(id, ifNoneMatch);
+    await this.dataService.deleteData(id, ifNoneMatch);
+    this.setStatus(204);
+    return;
+  }
+
+  @Patch("/:id")
+  @SuccessResponse("201", "Data was succesfully updated (patched)")
+  @Response("400", "Data is not present")
+  @Response("304", "No change in data to patch")
+  async patchData(
+    @Path() id: string,
+    @Body() payload: any
+  ){
+    const eTag = await this.dataService.patchData(id, payload, DataSchema);
+    this.setHeader("ETag", eTag)
+    this.setStatus(201);
+    return;
   }
 }

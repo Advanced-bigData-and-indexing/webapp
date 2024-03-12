@@ -1,47 +1,117 @@
-import crypto from "crypto";
 import { ZodSchema } from "zod";
-import { client } from "../config/redisClient.config.js";
 import {
   BadInputError,
   BadRequestError,
   DataNotModified,
   ServiceUnavailableError,
 } from "../errorHandling/Errors.js";
-import { createId } from "../utils/redis.util.js";
+import { generateEtag } from "../utils/eTag.util.js";
+import { DataStore } from "../utils/redis.util.js";
 
 export default class DataService {
+  dataStore = new DataStore();
+
   async getData(
     id: string,
     clientETag: string
   ): Promise<{ eTag: string; currentData: any }> {
-    // Retrieve the current ETag and data from the database/cache
-    let currentEtag = await client.get(`${createId(id)}:etag`);
+    const { data, eTag } = await this.dataStore.getById(id);
 
-    if (!currentEtag) {
+    if (eTag == null || data == null) {
       throw new BadRequestError();
     }
 
     // Compare the client's ETag with the current ETag
-    if (clientETag === currentEtag) {
+    if (clientETag === eTag) {
       // Data has not changed, return 304 Not Modified
       throw new DataNotModified("Data not modified");
     }
 
-    const data = await client.get(`${createId(id)}`);
-
-    if (data == null) {
-      throw new BadRequestError();
-    }
-
     // Data has changed or no ETag provided, return 200 OK with data and current ETag
-    return { eTag: currentEtag, currentData: JSON.parse(data) };
+    return { eTag, currentData: JSON.parse(data) };
   }
 
   async postData(
     inputJson: any,
     schemaToTest: ZodSchema,
     idField: string
-  ): Promise<{ output: any; etag: any }> {
+  ): Promise<string> {
+    const validatedData = this.validateData(inputJson, schemaToTest);
+
+    const id = validatedData[idField];
+
+    const { eTag, data } = await this.dataStore.getById(id);
+
+    // check if we already have data for this id in the KV store
+    if (eTag || data) {
+      throw new BadInputError("Data already present");
+    }
+
+    await this.dataStore.set(validatedData, idField);
+
+    // get the data that was set
+    const existingData = await this.dataStore.getById(id);
+
+    if (!existingData.data || !existingData.eTag) {
+      throw new ServiceUnavailableError("Error in redis server");
+    }
+
+    // return updated data
+    return existingData.eTag;
+  }
+
+  async deleteData(idToDelete: string, ETagToDelete: string) {
+    const { eTag, data } = await this.dataStore.getById(idToDelete);
+
+    if (eTag == null || data == null) {
+      throw new BadInputError("Data not present in DB");
+    }
+
+    // ETag has been modified - cannot delete something that has changed in the DB
+    // Throw 400 bad request
+    if (eTag !== ETagToDelete) {
+      throw new BadRequestError();
+    }
+
+    if (!data) {
+      throw new BadInputError("Data not present in DB");
+    }
+
+    await this.dataStore.deleteById(idToDelete);
+  }
+
+  async patchData(
+    idToPatch: string,
+    inputJson: any,
+    schemaToTest: ZodSchema,
+  ): Promise<string> {
+    const validatedData = this.validateData(inputJson, schemaToTest);
+
+    // check if we already have this key in the kv store
+    const {eTag, data} = await this.dataStore.getById(idToPatch);
+
+    if (!eTag || !data) {
+      throw new BadInputError("Data not present");
+    }
+
+    // Data is present
+
+    // Generate an ETag for the incoming json
+    const etagForIncomingJson = generateEtag(validatedData);
+
+    // check if eTag has not changed
+    if (eTag == etagForIncomingJson) {
+      throw new DataNotModified("Update payload identical to existing json");
+    }
+
+    // we have a different payload
+    // now we need to replace the value for this key with this updated payload
+    // set content for this key to new payload
+    return await this.dataStore.set(validatedData, idToPatch);
+
+  }
+
+  private validateData(inputJson: any, schemaToTest: ZodSchema): any {
     // we validate the input
     // Parsing the input object to see if there is an error in schema
     const validation = schemaToTest.safeParse(inputJson);
@@ -51,77 +121,6 @@ export default class DataService {
       throw new BadInputError("Invalid json object passed");
     }
 
-    const validatedData = validation.data;
-
-    // check if we already have this in the KV store
-    const eTagPresent = await client.get(
-      `${createId(validatedData[idField])}:etag`
-    );
-
-    if (eTagPresent) {
-      console.log("ETag Present ", eTagPresent);
-      throw new BadInputError("Data already present");
-    }
-
-    // Generate an ETag for the inputJson
-    const etag = crypto
-      .createHash("md5")
-      .update(JSON.stringify(validatedData))
-      .digest("hex");
-
-    try {
-      // update the data in redis under a key
-      await client.set(
-        createId(validatedData[idField]),
-        JSON.stringify(validatedData)
-      );
-      await client.set(`${createId(validatedData[idField])}:etag`, etag); // Store the ETag in a related key
-    } catch (err) {
-      throw new ServiceUnavailableError("Error in redis server " + err);
-    }
-
-    // get the data that was set
-    const dataAfterSave = await client.get(createId(validatedData[idField]));
-    const eTagSaved = await client.get(
-      `${createId(validatedData[idField])}:etag`
-    );
-
-    if (!dataAfterSave || !eTagSaved) {
-      throw new ServiceUnavailableError(
-        "Error in redis server " + !dataAfterSave + !eTagSaved
-      );
-    }
-
-    // return updated data
-    return { output: JSON.parse(dataAfterSave), etag: eTagSaved };
-  }
-
-  async deleteData(idToDelete: string, ETagToDelete: string) {
-    const existingETag = await client.get(`${createId(idToDelete)}:etag`);
-
-    if (existingETag == null) {
-      throw new BadInputError("Data not present in DB");
-    }
-
-    // ETag has been modified - cannot delete something that has changed in the DB
-    // Throw 400 bad request
-    if (existingETag !== ETagToDelete) {
-      throw new BadRequestError();
-    }
-
-    const dataInDB = await client.get(createId(idToDelete));
-
-    if (!dataInDB) {
-      throw new BadInputError("Data not present in DB");
-    }
-
-    const deleteOp1 = await client.del(createId(idToDelete));
-    const deleteOp2 = await client.del(`${createId(idToDelete)}:etag`);
-
-    if (deleteOp1 !== 1 || deleteOp2 !== 1) {
-      throw new ServiceUnavailableError();
-    }
-
-    return idToDelete;
+    return validation.data;
   }
 }
