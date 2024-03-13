@@ -18,6 +18,12 @@ class EnvConfiguration {
   static LOG_LEVEL = process.env.LOG_LEVEL;
 
   static DATA_TYPE = process.env.DATA_TYPE;
+
+  static CLIENT_ID=process.env.CLIENT_ID;
+
+  static ISSUER=process.env.ISSUER;
+
+  static JWK_URL=process.env.REMOTE_JWK_URL;
 }
 
 export enum Environment {
