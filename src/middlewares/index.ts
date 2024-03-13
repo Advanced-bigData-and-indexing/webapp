@@ -8,7 +8,7 @@ import {
   cacheControl,
 } from "./errorHandler.middleware.js";
 import { EnvConfiguration, Environment } from "../config/env.config.js";
-import swaggerJson from "../routes/swagger.json" assert { type: "json" };
+import swaggerJson from "../routes/swagger.json";
 import { errorHandler } from "../errorHandling/ErrorHandler.js";
 import { basicAuthMiddleware } from "./basicAuth.middleware.js";
 import { dbCheck } from "./dbCheckMiddleWare.js";
