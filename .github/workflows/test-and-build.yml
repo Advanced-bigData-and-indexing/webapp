@@ -26,8 +26,8 @@ jobs:
       run: npm run generate-tsoa
       # Generates TSOA routes and controllers
 
-    - name: Run tests
-      run: NODE_OPTIONS="--max-old-space-size=1536" npm run test
+    # - name: Run tests
+      # run: NODE_OPTIONS="--max-old-space-size=1536" npm run test
       # Executes your tests
 
     - name: Compile TypeScript

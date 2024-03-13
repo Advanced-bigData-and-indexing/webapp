@@ -10,6 +10,7 @@ import {
   DataNotModified,
   ServiceUnavailableError,
 } from "../../errorHandling/Errors";
+import { generateEtag } from "../../utils/eTag.util";
 const mockETag = "a8e483df6dbcaff58dc94279113206a4";
 const idField = "id";
 const mockSchema = z.object({
@@ -54,12 +55,12 @@ describe("Data Service", () => {
         .mockResolvedValueOnce(JSON.stringify(mockData))
         .mockResolvedValueOnce(mockETag);
 
-      const { output, etag } = await dataService.postData(
+      const eTag = await dataService.postData(
         mockData,
         mockSchema,
         idField
       );
-      expect(output).toEqual(mockData);
+      expect(eTag).toEqual(generateEtag(mockData));
     });
 
     it("Should return the ETag value along with the inserted json object if succesful", async () => {
@@ -72,7 +73,7 @@ describe("Data Service", () => {
         .mockResolvedValueOnce(null)
         .mockResolvedValue(JSON.stringify(mockData));
 
-      const { output, etag } = await dataService.postData(
+      const etag = await dataService.postData(
         mockData,
         mockSchema,
         idField
