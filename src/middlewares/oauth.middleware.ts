@@ -107,10 +107,7 @@ export const OAuthMiddleware = async (
       return res.status(401).end();
     }
 
-    const base64Credentials = authHeader.split(" ")[1]; // Bearer idToken
-    const idToken = Buffer.from(base64Credentials, "base64").toString("ascii");
-
-    console.log(idToken);
+    const idToken = authHeader.split(" ")[1]; // Bearer idToken
 
     const JWKS = jose.createRemoteJWKSet(
       new URL(
@@ -118,14 +115,17 @@ export const OAuthMiddleware = async (
       )
     );
 
-    const { payload, protectedHeader } = await jose.jwtVerify(idToken, JWKS, {
-      issuer: EnvConfiguration.ISSUER,
-      audience: EnvConfiguration.CLIENT_ID,
-    });
-
-    if (payload && protectedHeader) {
-      next();
-    } else {
+    try {
+      const { payload, protectedHeader } = await jose.jwtVerify(idToken, JWKS, {
+        issuer: EnvConfiguration.ISSUER,
+        audience: EnvConfiguration.CLIENT_ID,
+      });
+      if (payload && protectedHeader) {
+        next();
+      } else {
+        return res.status(401).end();
+      }
+    } catch (err) {
       return res.status(401).end();
     }
   } else {
