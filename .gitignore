@@ -134,3 +134,6 @@ dist
 
 # Generated files
 webapp/src/routes/*
+
+# Ignoring secrets file
+*.secret
