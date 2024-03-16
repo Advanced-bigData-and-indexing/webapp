@@ -27,7 +27,9 @@ jobs:
 
     - name: Create .env.integration file
       run: |
-        echo "${{ secrets.INT_ENV_FILE }}" | base64 -d > .env.integration        
+        echo "${{ secrets.INT_ENV_FILE }}" | base64 -d > .env.integration  
+        ls -al .  
+        cat .env.integration    
 
     - name: Install dependencies
       run: npm install
