@@ -6,5 +6,6 @@ export const client = createClient();
 
 export const connectClient = async () => {
   client.on("error", (err) => console.log("Redis Client Error", err));
-  await client.connect();
+  const isConnected = await client.connect();
+  return isConnected;
 };
