@@ -7,6 +7,7 @@
   "scripts": {
     "test": "npx jest --coverage",
     "dev": "nodemon --exec npx esrun src/index.ts",
+    "debugDev": "npx esrun src/index.ts",
     "clean-up": "rm -rf dist && rm -rf ./src/routes",
     "generate-tsoa": "tsoa spec-and-routes",
     "pre-build": "node preProcess.js",

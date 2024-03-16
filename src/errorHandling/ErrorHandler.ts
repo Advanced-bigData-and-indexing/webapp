@@ -13,6 +13,7 @@ import {
 // noinspection JSUnusedLocalSymbols
 export const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
   if (error instanceof ValidateError) {
+    console.log(error);
     res.status(HTTPStatusCode.BAD_REQUEST).end();
   } else if (error instanceof PreConditionRequiredError){
     res.status(HTTPStatusCode.PRECONDITION_REQUIRED).end();

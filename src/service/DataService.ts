@@ -64,12 +64,14 @@ export default class DataService {
     const { eTag, data } = await this.dataStore.getById(idToDelete);
 
     if (eTag == null || data == null) {
+      console.log("data not present in db");
       throw new BadInputError("Data not present in DB");
     }
 
     // ETag has been modified - cannot delete something that has changed in the DB
     // Throw 400 bad request
     if (eTag !== ETagToDelete) {
+      console.log("please pass correct e Tag");
       throw new BadRequestError();
     }
 
@@ -84,11 +86,12 @@ export default class DataService {
     idToPatch: string,
     inputJson: any,
     schemaToTest: ZodSchema,
+    idField: string
   ): Promise<string> {
     const validatedData = this.validateData(inputJson, schemaToTest);
 
     // check if we already have this key in the kv store
-    const {eTag, data} = await this.dataStore.getById(idToPatch);
+    const { eTag, data } = await this.dataStore.getById(idToPatch);
 
     if (!eTag || !data) {
       throw new BadInputError("Data not present");
@@ -98,17 +101,20 @@ export default class DataService {
 
     // Generate an ETag for the incoming json
     const etagForIncomingJson = generateEtag(validatedData);
-
+  
     // check if eTag has not changed
     if (eTag == etagForIncomingJson) {
       throw new DataNotModified("Update payload identical to existing json");
     }
 
+    // We need a function to modify the existing data based on the input
+
+    const updatedData = this.patch(validatedData, JSON.parse(data), idField);
+
     // we have a different payload
     // now we need to replace the value for this key with this updated payload
     // set content for this key to new payload
-    return await this.dataStore.set(validatedData, idToPatch);
-
+    return await this.dataStore.set(updatedData, idToPatch);
   }
 
   private validateData(inputJson: any, schemaToTest: ZodSchema): any {
@@ -117,10 +123,59 @@ export default class DataService {
     const validation = schemaToTest.safeParse(inputJson);
 
     if (!validation.success) {
-      // console.log("data validation failed ", validation.error);
       throw new BadInputError("Invalid json object passed");
     }
 
     return validation.data;
+  }
+
+  /**
+   *
+   * @param payload Incoming payload to update
+   * @param existingDataCopy Data object that needs to be updated
+   * @param idField The key in the object that holds the id of the object
+   */
+  private patch(payload: any, existingDataCopy: any, idField: string) {
+    // we need to iterate through the keys of the payload and
+    // apply the changes to the same key on the existing data
+
+    const keys = Object.keys(payload);
+    // values can be arrays, strings, number or objects
+
+    for (const key of keys) {
+      const val = existingDataCopy[key];
+      if (Array.isArray(val)) {
+        const existingArray = val;
+        // get the array value in the incoming payload
+        const incomingArray = payload[key];
+
+        // now check each entry in the incoming array
+        // if the entry does not exist in the exisitng array, append it
+        // else patch it
+        for(let i = 0 ; i < incomingArray.length; i++){
+          const obj = incomingArray[i];
+          // does this key exist ?
+          const existingObject = existingArray.filter(
+            (x: any) => x[idField] == obj[idField]
+          )[0];
+          if (!existingObject) {
+            // append this new object to the array
+            existingArray.push(obj);
+          } else {;
+            const indexOfExistingObject = existingArray.indexOf(existingObject);
+            const patchedOutput = this.patch(obj, existingObject, idField);
+            // find the index of this object in the existing array and update the
+            existingArray[indexOfExistingObject] = patchedOutput;
+          }
+        }
+      } else if (typeof val == "object") {
+        existingDataCopy[key] = this.patch(payload[key], val, idField);
+      } else {
+        // just update this key with the incoming field
+        existingDataCopy[key] = payload[key];
+      }
+    }
+
+    return existingDataCopy;
   }
 }
