@@ -47,7 +47,7 @@ export default class DataService {
       throw new BadInputError("Data already present");
     }
 
-    await this.dataStore.set(validatedData, idField);
+    await this.dataStore.set(validatedData, id);
 
     // get the data that was set
     const existingData = await this.dataStore.getById(id);
