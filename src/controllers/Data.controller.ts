@@ -97,7 +97,7 @@ export class DataController extends Controller {
     @Path() id: string,
     @Body() payload: any
   ){
-    const eTag = await this.dataService.patchData(id, payload, DataSchema);
+    const eTag = await this.dataService.patchData(id, payload, DataSchema, DataSchemaIdField);
     this.setHeader("ETag", eTag)
     this.setStatus(201);
     return;
