@@ -10,7 +10,8 @@ import jwksClient from "jwks-rsa";
  * Reference: https://dev.to/cloudx/validate-an-openid-connect-jwt-using-a-public-key-in-jwks-14jh
  */
 
-const allowedIssuers = [EnvConfiguration.ISSUER];
+// const allowedIssuers = [EnvConfiguration.ISSUER];
+const allowedIssuers = ["https://accounts.google.com"];
 
 export const OAuthMiddleware = async (
   req: express.Request,

@@ -419,12 +419,15 @@ describe("data", () => {
               it("should return a 201 response code", async () => {
                 await dataStore.set(data, data.objectId);
 
-                const { body } = await supertest(app)
+                const { body, headers } = await supertest(app)
                   .patch(`/v1/data/${data.objectId}`)
                   .set("Authorization", `Basic ${idToken}`)
                   .set("If-None-Match", "new ETag")
                   .send(patchData)
                   .expect(201);
+
+                  expect(headers.etag).toBeDefined();
+                  
               });
               it("should have the updated data in the get call after patching", async () => {
                 await dataStore.set(data, data.objectId);
