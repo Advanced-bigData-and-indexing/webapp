@@ -3,6 +3,7 @@ import {
   BadInputError,
   BadRequestError,
   DataNotModified,
+  PreConditionRequiredError,
   ServiceUnavailableError,
 } from "../errorHandling/Errors.js";
 import { generateEtag } from "../utils/eTag.util.js";
@@ -72,7 +73,7 @@ export default class DataService {
     // Throw 400 bad request
     if (eTag !== ETagToDelete) {
       console.log("please pass correct e Tag");
-      throw new BadRequestError();
+      throw new PreConditionRequiredError();
     }
 
     if (!data) {
@@ -86,7 +87,8 @@ export default class DataService {
     idToPatch: string,
     inputJson: any,
     schemaToTest: ZodSchema,
-    idField: string
+    idField: string,
+    etagForIncomingJson : string
   ): Promise<string> {
     const validatedData = this.validateData(inputJson, schemaToTest);
 
@@ -99,9 +101,6 @@ export default class DataService {
 
     // Data is present
 
-    // Generate an ETag for the incoming json
-    const etagForIncomingJson = generateEtag(validatedData);
-  
     // check if eTag has not changed
     if (eTag == etagForIncomingJson) {
       throw new DataNotModified("Update payload identical to existing json");

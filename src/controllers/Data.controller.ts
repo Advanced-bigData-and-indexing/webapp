@@ -95,9 +95,10 @@ export class DataController extends Controller {
   @Response("304", "No change in data to patch")
   async patchData(
     @Path() id: string,
-    @Body() payload: any
+    @Body() payload: any,
+    @Header('If-None-Match') ifNoneMatch: string
   ){
-    const eTag = await this.dataService.patchData(id, payload, DataSchema, DataSchemaIdField);
+    const eTag = await this.dataService.patchData(id, payload, DataSchema, DataSchemaIdField, ifNoneMatch);
     this.setHeader("ETag", eTag)
     this.setStatus(201);
     return;
