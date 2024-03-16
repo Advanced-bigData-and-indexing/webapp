@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "integration": "NODE_ENV=integration npx jest --detectOpenHandles --forceExit --runInBand --testMatch=\"**/integration/**\" --watch",
+    "integration": "NODE_ENV=integration npx jest --detectOpenHandles --forceExit --runInBand --testMatch=\"**/integration/**\"",
     "test": "npx jest --coverage",
     "dev": "nodemon --exec npx esrun src/index.ts",
     "debugDev": "npx esrun src/index.ts",
