@@ -3,6 +3,10 @@
 Author: Dhruv Parthasarathy
 NUID: 002919280
 
+[![Unit Test and Build](https://github.com/Advanced-bigData-and-indexing/webapp/actions/workflows/test-and-build.yml/badge.svg)](https://github.com/Advanced-bigData-and-indexing/webapp/actions/workflows/test-and-build.yml)
+
+[![Integration Test](https://github.com/Advanced-bigData-and-indexing/webapp/actions/workflows/integration-test.yml/badge.svg)](https://github.com/Advanced-bigData-and-indexing/webapp/actions/workflows/integration-test.yml)
+
 ## Overview
 
 ....
