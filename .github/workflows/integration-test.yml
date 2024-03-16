@@ -1,0 +1,39 @@
+name: Integration Test
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '20.2.0'
+
+    - name: Set up redis
+      uses: shogo82148/actions-setup-redis@v1
+      with:
+        # TLS Support starts from v6.0.
+        redis-version: "6.0"
+        auto-start: "true"
+
+
+    - name: Create .env.integration file
+      run: |
+        echo "${{ secrets.INT_ENV_FILE }}" | base64 -d > .env.integration        
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Generate TSOA
+      run: npm run generate-tsoa
+
+    - name: Run integration tests
+      run: NODE_OPTIONS="--max-old-space-size=1536" npm run integration -- --verbose
