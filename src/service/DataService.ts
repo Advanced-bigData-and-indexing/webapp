@@ -6,7 +6,6 @@ import {
   PreConditionRequiredError,
   ServiceUnavailableError,
 } from "../errorHandling/Errors.js";
-import { generateEtag } from "../utils/eTag.util.js";
 import { DataStore } from "../utils/redis.util.js";
 
 export default class DataService {
