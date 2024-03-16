@@ -28,7 +28,6 @@ export const configMiddleware = (app: any) => {
   app.use(cors());
   app.use(cacheControl, methodNotAllowed, badRequestHandler);
   app.use(dbCheck);
-  app.use(basicAuthMiddleware);
   app.use(OAuthMiddleware);
   RegisterRoutes(app);
 
