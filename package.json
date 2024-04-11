@@ -7,7 +7,7 @@
   "scripts": {
     "integration": "NODE_ENV=integration npx jest --detectOpenHandles --forceExit --runInBand --testMatch=\"**/integration/**\"",
     "test": "npx jest --coverage",
-    "dev": "nodemon --exec npx esrun src/index.ts",
+    "dev": "NODE_ENV=development nodemon --exec npx esrun src/index.ts",
     "debugDev": "npx esrun src/index.ts",
     "clean-up": "rm -rf dist && rm -rf ./src/routes",
     "generate-tsoa": "tsoa spec-and-routes",
