@@ -104,9 +104,15 @@ export class DataStore {
 
   async set(data: any, id: string): Promise<string> {
     try {
+
+      // We need to change this part of the code to split the data into it's individual entities and store it
+      // separately - this is where data modelling comes into the picture
       // update the data in redis under a key
       await client.set(createId(id), JSON.stringify(data));
       const etag = generateEtag(data);
+
+      // Also split the data and save it
+      await this.storePlan(id, data);
 
       await client.set(`${createId(id)}:etag`, etag); // Store the ETag in a related key
       return etag;
@@ -123,4 +129,48 @@ export class DataStore {
       throw new ServiceUnavailableError();
     }
   }
+
+  // Function to store a plan object
+  async storePlan(id: string, planObject : any) : Promise<void> {
+
+    const planId = `plan:${id}`;
+
+    await client.hSet(planId, {
+      "_org" : planObject._org,
+      "objectType" : planObject.objectType,
+      "planType" : planObject.planType,
+      "creationDate" : planObject.creationDate
+    });
+    
+    // Store the main plan cost shares
+    const planCostSharesId = `${planObject.planCostShares.objectType}:${planObject.planCostShares.objectId}`;
+    await client.hSet(planCostSharesId, planObject.planCostShares);
+    
+    // Store linked plan services
+    const promiseList =  planObject.linkedPlanServices.map( async (service:any) => {
+      
+        // The individual linkedPlanService
+        const planserviceId = `${service.objectType}:${service.objectId}`;
+
+        // Adding the individual linkedPlanService to the linkedPlanServices of the parent plan
+        await client.sAdd(`${planId}:linkedPlanServices`, planserviceId);
+
+        // Also creating an individual entry for the linkedPlanService
+        await client.hSet(planserviceId, {
+          "_org" : service._org,
+          "objectType" : service.objectType,
+        });
+    
+        // Store nested objects within the linkedPlanService like linkedService and planserviceCostShares
+        const linkedServiceId = `${service.linkedService.objectType}:${service.linkedService.objectId}`;
+        await client.hSet(linkedServiceId, service.linkedService);
+    
+        const serviceCostSharesId = `${service.planserviceCostShares.objectType}:${service.planserviceCostShares.objectId}`;
+        await client.hSet(serviceCostSharesId, service.planserviceCostShares);
+    });
+
+    await Promise.all(promiseList);
+  }
+
+    
 }
