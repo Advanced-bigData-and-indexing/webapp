@@ -644,6 +644,11 @@ describe("data", () => {
         });
 
         describe("given key is already present", () => {
+
+          beforeEach(async () => {
+            await client.flushAll();
+          });
+
           it("should return a 204 response code with no payload in response body", async () => {
             // add the data to db
             await supertest(app)
@@ -653,14 +658,21 @@ describe("data", () => {
               .expect(201);
 
             // perform the delete task and check response
-            const { body } = await supertest(app)
+            await supertest(app)
               .delete(`/v1/data/${data.objectId}`)
               .set("Authorization", `Basic ${idToken}`)
               .set("If-None-Match", dataETag)
               .expect(204);
 
-            expect(body).toEqual({});
+            await supertest(app)
+            .get(`/v1/data/${data.objectId}`)
+              .set("Authorization", `Basic ${idToken}`)
+              .set("If-None-Match", "new ETag")
+              .expect(400);
+            
+
           });
+
 
           describe("none match header is the same as in the db", () => {
             it("should return a 428 response code", async () => {
