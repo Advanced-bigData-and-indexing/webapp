@@ -6,10 +6,37 @@ import {
   PreConditionRequiredError,
   ServiceUnavailableError,
 } from "../errorHandling/Errors.js";
+import { generateEtag } from "../utils/eTag.util.js";
 import { DataStore } from "../utils/redis.util.js";
 
 export default class DataService {
+
   dataStore = new DataStore();
+
+  async getAllData() : Promise<any[]> {
+    
+    // get all keys
+    const keys = await this.dataStore.getIds();
+
+    const data: any[] = [];
+    // for each key get the data
+    const promises = keys.map( async (key:string) => {
+
+      // strip the key word plan from the key
+      const tokens = key.split(":");
+
+      const planObj =  await this.dataStore.getById(tokens[1]);
+
+      data.push(planObj);
+
+    })
+    
+    await Promise.all(promises);
+
+    return data;
+
+    
+  }
 
   async getData(
     id: string,
@@ -44,6 +71,7 @@ export default class DataService {
 
     // check if we already have data for this id in the KV store
     if (eTag || data) {
+      console.log("data already present error");
       throw new BadInputError("Data already present");
     }
 
@@ -106,13 +134,14 @@ export default class DataService {
     }
 
     // We need a function to modify the existing data based on the input
+    await this.dataStore.updatePlanObject(validatedData);
 
-    const updatedData = this.patch(validatedData, JSON.parse(data), idField);
+    const updatedData = await this.dataStore.reconstructPlanObject(validatedData.objectId);
+
+    const updatedEtag = generateEtag(updatedData);
 
     // we have a different payload
-    // now we need to replace the value for this key with this updated payload
-    // set content for this key to new payload
-    return await this.dataStore.set(updatedData, idToPatch);
+    return updatedEtag;
   }
 
   private validateData(inputJson: any, schemaToTest: ZodSchema): any {
@@ -127,53 +156,4 @@ export default class DataService {
     return validation.data;
   }
 
-  /**
-   *
-   * @param payload Incoming payload to update
-   * @param existingDataCopy Data object that needs to be updated
-   * @param idField The key in the object that holds the id of the object
-   */
-  private patch(payload: any, existingDataCopy: any, idField: string) {
-    // we need to iterate through the keys of the payload and
-    // apply the changes to the same key on the existing data
-
-    const keys = Object.keys(payload);
-    // values can be arrays, strings, number or objects
-
-    for (const key of keys) {
-      const val = existingDataCopy[key];
-      if (Array.isArray(val)) {
-        const existingArray = val;
-        // get the array value in the incoming payload
-        const incomingArray = payload[key];
-
-        // now check each entry in the incoming array
-        // if the entry does not exist in the exisitng array, append it
-        // else patch it
-        for(let i = 0 ; i < incomingArray.length; i++){
-          const obj = incomingArray[i];
-          // does this key exist ?
-          const existingObject = existingArray.filter(
-            (x: any) => x[idField] == obj[idField]
-          )[0];
-          if (!existingObject) {
-            // append this new object to the array
-            existingArray.push(obj);
-          } else {;
-            const indexOfExistingObject = existingArray.indexOf(existingObject);
-            const patchedOutput = this.patch(obj, existingObject, idField);
-            // find the index of this object in the existing array and update the
-            existingArray[indexOfExistingObject] = patchedOutput;
-          }
-        }
-      } else if (typeof val == "object") {
-        existingDataCopy[key] = this.patch(payload[key], val, idField);
-      } else {
-        // just update this key with the incoming field
-        existingDataCopy[key] = payload[key];
-      }
-    }
-
-    return existingDataCopy;
-  }
 }

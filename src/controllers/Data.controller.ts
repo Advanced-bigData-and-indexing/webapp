@@ -53,9 +53,12 @@ export class DataController extends Controller {
   @Get("")
   @SuccessResponse("200", "Data is succesfully fetched")
   async getAllData() {
-    const data = await fetchValuesByPattern();
+
+    // get all keys that follow the pattern plan*
+    const allData = await this.dataService.getAllData();
+
     this.setStatus(200);
-    return data;
+    return allData;
   }
 
   @Post("")

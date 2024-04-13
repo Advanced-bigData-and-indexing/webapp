@@ -16,16 +16,22 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
     console.log(error);
     res.status(HTTPStatusCode.BAD_REQUEST).end();
   } else if (error instanceof PreConditionRequiredError){
+    console.log(error);
     res.status(HTTPStatusCode.PRECONDITION_REQUIRED).end();
   } else if (error instanceof DataNotModified) {
+    console.log(error);
     res.status(HTTPStatusCode.DATA_NOT_MODIFIED).end();
   } else if (error instanceof NotFoundError) {
+    console.log(error);
     res.status(HTTPStatusCode.OK).end();
   } else if (error instanceof BadInputError) {
+    console.log(error);
     res.status(HTTPStatusCode.BAD_REQUEST).end();
   } else if (error instanceof BadRequestError) {
+    console.log(error);
     res.status(HTTPStatusCode.BAD_REQUEST).end();
   } else if (error instanceof AuthError) {
+    console.log(error);
     res.status(HTTPStatusCode.UNAUTHORIZED).end();
   } else {
     console.log(error);
