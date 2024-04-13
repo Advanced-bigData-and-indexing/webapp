@@ -93,7 +93,18 @@ export class DataStore {
   }
 
   async getById(id: string): Promise<{ data: any; eTag: string | null }> {
-    const data = await client.get(`${createId(id)}`);
+
+    // Check if the key is present in the DB
+    const planMetadata = await client.hGet(`plan:${id}`, "objectId");
+
+    if(!planMetadata){
+      return {
+        data: undefined,
+        eTag: ""
+      }
+    }
+
+    const data = await this.reconstructPlanObject(id);
     const eTag = await client.get(`${createId(id)}:etag`);
 
     return {
@@ -104,7 +115,6 @@ export class DataStore {
 
   async set(data: any, id: string): Promise<string> {
     try {
-
       // We need to change this part of the code to split the data into it's individual entities and store it
       // separately - this is where data modelling comes into the picture
       // update the data in redis under a key
@@ -131,24 +141,26 @@ export class DataStore {
   }
 
   // Function to store a plan object
-  async storePlan(id: string, planObject : any) : Promise<void> {
+  async storePlan(id: string, planObject: any): Promise<void> {
 
     const planId = `plan:${id}`;
 
     await client.hSet(planId, {
-      "_org" : planObject._org,
-      "objectType" : planObject.objectType,
-      "planType" : planObject.planType,
-      "creationDate" : planObject.creationDate
+      _org: planObject._org,
+      objectType: planObject.objectType,
+      planType: planObject.planType,
+      creationDate: planObject.creationDate,
+      planCostSharesId: planObject.planCostShares.objectId,
+      objectId: id
     });
-    
+
     // Store the main plan cost shares
-    const planCostSharesId = `${planObject.planCostShares.objectType}:${planObject.planCostShares.objectId}`;
+    const planCostSharesId = `planCostShares:${planObject.planCostShares.objectId}`;
     await client.hSet(planCostSharesId, planObject.planCostShares);
-    
+
     // Store linked plan services
-    const promiseList =  planObject.linkedPlanServices.map( async (service:any) => {
-      
+    const promiseList = planObject.linkedPlanServices.map(
+      async (service: any) => {
         // The individual linkedPlanService
         const planserviceId = `${service.objectType}:${service.objectId}`;
 
@@ -157,20 +169,81 @@ export class DataStore {
 
         // Also creating an individual entry for the linkedPlanService
         await client.hSet(planserviceId, {
-          "_org" : service._org,
-          "objectType" : service.objectType,
+          _org: service._org,
+          objectType: service.objectType,
+          linkedServiceId: service.linkedService.objectId,
+          planserviceCostSharesId: service.planserviceCostShares.objectId
         });
-    
+
         // Store nested objects within the linkedPlanService like linkedService and planserviceCostShares
-        const linkedServiceId = `${service.linkedService.objectType}:${service.linkedService.objectId}`;
+        const linkedServiceId = `linkedService:${service.linkedService.objectId}`;
         await client.hSet(linkedServiceId, service.linkedService);
-    
-        const serviceCostSharesId = `${service.planserviceCostShares.objectType}:${service.planserviceCostShares.objectId}`;
+
+        const serviceCostSharesId = `planserviceCostShares:${service.planserviceCostShares.objectId}`;
         await client.hSet(serviceCostSharesId, service.planserviceCostShares);
-    });
+      }
+    );
 
     await Promise.all(promiseList);
   }
 
-    
+  async reconstructPlanObject(planId: string): Promise<any> {
+    try {
+      // Retrieve the main plan details
+      const planKey = `plan:${planId}`;
+      const planDetails = await client.hGetAll(planKey);
+
+      const linkedPlanServicesArray : any[] = [];
+
+      // Initialize the plan object with fetched details
+      let planObject = {
+        planCostShares: {},
+        linkedPlanServices: linkedPlanServicesArray,
+        ...planDetails,
+      };
+
+      // Fetch linked services IDs as an array
+      const linkedPlanServicesIds = await client.sMembers(
+        `${planKey}:linkedPlanServices`
+      );
+
+      // Retrieve each linked service and its associated cost shares
+      for (let linkedPlanServiceId of linkedPlanServicesIds) {
+
+        // get the metadata of the linkedService
+        const linkedPlanServiceDetailsObject  = await client.hGetAll(linkedPlanServiceId);
+
+        // as per schema we will have a `linkedService` and a `planserviceCostShares` object as well associated 
+        // with this linkedServiceId
+
+        // get the metadata of the associated linkedService
+        const linkedServiceObjectId = `linkedService:${linkedPlanServiceDetailsObject.linkedServiceId}`;
+        const linkedServiceObject = await client.hGetAll(linkedServiceObjectId)
+
+        // get the metadata of the associated 'planserviceCostShares'
+        const planserviceCostSharesObjectId = `planserviceCostShares:${linkedPlanServiceDetailsObject.planserviceCostSharesId}`;
+        const planserviceCostSharesObject = await client.hGetAll(planserviceCostSharesObjectId);
+
+        const linkedPlanServiceObject = {
+          linkedService: linkedServiceObject,
+          planserviceCostShares: planserviceCostSharesObject,
+          ...linkedPlanServiceDetailsObject
+        }
+
+        planObject.linkedPlanServices.push(linkedPlanServiceObject);
+      }
+
+      // retrieve the planCostShares details
+      const planCostSharesId = `planCostShares:${planDetails.planCostSharesId}`
+      const planCostSharesObject = await client.hGetAll(planCostSharesId);
+
+      planObject.planCostShares = planCostSharesObject;
+
+      return planObject;
+
+    } catch (error) {
+      console.error("Failed to reconstruct the plan object:", error);
+      throw error;
+    }
+  }
 }
